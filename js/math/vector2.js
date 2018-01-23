@@ -408,5 +408,11 @@ bento.define('bento/math/vector2', [
         return '[object Vector2]';
     };
 
+    Object.defineProperty(Vector2, 'right', {
+        get: function () {
+            return new Vector2(1, 0);
+        }
+    });
+
     return Vector2;
 });
