@@ -13104,15 +13104,15 @@ bento.define('bento/math/rectangle', [
     /**
      * Returns a new rectangle that has been multiplied by a vector
      * @function
-     * @param {Number} multiply - Multiplication
+     * @param {Number} multiplication - Multiplication
      * @returns {Rectangle} Returns a new rectangle instance
      * @instance
      * @name scalarMultiply
      * @snippet #Rectangle.scalarMultiply|Rectangle
-        scalarMultiply(${1:vector});
+        scalarMultiply(${1:number});
      */
-    Rectangle.prototype.scalarMultiply = function (m) {
-        return new Rectangle(this.x * m, this.y * m, this.width * m, this.height * m);
+    Rectangle.prototype.scalarMultiply = function (mult) {
+        return new Rectangle(this.x * mult, this.y * mult, this.width * mult, this.height * mult);
     };
     /**
      * Clones rectangle
