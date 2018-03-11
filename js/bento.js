@@ -105,7 +105,6 @@ bento.define('bento', [
     var dev = false;
     var gameData = {};
     var viewport = new Rectangle(0, 0, 640, 480);
-    var offset = new Vector2(0, 0);
     var setupCanvas = function (settings) {
         var parent;
         var pixelSize = settings.pixelSize || 1;
@@ -126,9 +125,9 @@ bento.define('bento', [
             canvas.id = settings.canvasId;
             parent.appendChild(canvas);
         }
-        //canvas.width = viewport.width * pixelSize;
-        //canvas.height = viewport.height * pixelSize;
-        canvasRatio = canvas.height / canvas.width;
+        canvas.width = viewport.width * pixelSize;
+        canvas.height = viewport.height * pixelSize;
+        canvasRatio = viewport.height / viewport.width;
     };
     var setupRenderer = function (settings, onComplete) {
         var rendererName;
@@ -220,7 +219,6 @@ bento.define('bento', [
          * @param {Object} [settings.assetGroups] - Asset groups to load. Key: group name, value: path to json file. See {@link module:bento/managers/asset#loadAssetGroups}
          * @param {String} settings.renderer - Renderer to use. Defaults to "canvas2d". To use "pixi", include the pixi.js file manually. Make sure to download v3!.
          * @param {Rectangle} settings.canvasDimension - base resolution for the game. Tip: use a bento/autoresize rectangle.
-         * @param {Vector2} settings.offset - an offset vector that will get applied to the input and renderer
          * @param {Boolean} settings.manualResize - Whether Bento should resize the canvas to fill automatically
          * @param {Boolean} settings.sortMode - Bento Object Manager sorts objects by their z value. See {@link module:bento/managers/object#setSortMode}
          * @param {Boolean} settings.subPixel - Disable rounding of pixels
@@ -244,18 +242,12 @@ bento.define('bento', [
                         callback();
                     }
                 };
-                /*
                 if (settings.canvasDimension) {
                     if (settings.canvasDimension.isRectangle) {
                         viewport = settings.canvasDimension || viewport;
                     } else {
                         throw 'settings.canvasDimension must be a rectangle';
                     }
-                }
-                */
-                if (settings.offset) {
-                    offset.x = settings.offset.x;
-                    offset.y = settings.offset.y
                 }
                 settings.sortMode = settings.sortMode || 0;
                 setupCanvas(settings);
@@ -274,11 +266,6 @@ bento.define('bento', [
                     Bento.assets = new AssetManager();
                     Bento.audio = new AudioManager(Bento);
                     Bento.screens = new ScreenManager();
-
-                    if (offset.x !== 0 || offset.y !== 0) {
-                        Bento.objects.setOffset(offset);
-                        Bento.input.setOffset(offset);
-                    }
 
                     // mix functions
                     Utils.extend(Bento, Bento.objects);
@@ -450,22 +437,6 @@ bento.define('bento', [
          */
         setGameSpeed: function (value) {
             throttle = value;
-        },
-        /**
-         * Sets the current game offset.
-         * @function
-         * @instance
-         * @param {Vecto2} offset - Game offset
-         * @name setOffset
-         */
-        setOffset: function (value) {
-            offset = value;
-            if (Bento.input) {
-                Bento.input.setOffset(offset);
-            }
-            if (Bento.objects) {
-                Bento.objects.setOffset(offset);
-            }
         },
         /**
          * Is game in dev mode?
