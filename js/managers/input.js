@@ -96,8 +96,8 @@ bento.define('bento/managers/input', [
             },
             addTouchPosition = function (evt, n, type) {
                 var touch = evt.changedTouches[n];
-                var x = (touch.pageX - offsetLeft) / canvasScale.x + offsetLocal.x;
-                var y = (touch.pageY - offsetTop) / canvasScale.y + offsetLocal.y;
+                var x = (touch.pageX - offsetLeft) / canvasScale.x - offsetLocal.x;
+                var y = (touch.pageY - offsetTop) / canvasScale.y - offsetLocal.y;
                 var startPos = {};
 
                 evt.preventDefault();
@@ -140,8 +140,8 @@ bento.define('bento/managers/input', [
 
             },
             addMousePosition = function (evt, type) {
-                var x = (evt.pageX - offsetLeft) / canvasScale.x + offsetLocal.x,
-                    y = (evt.pageY - offsetTop) / canvasScale.y + offsetLocal.y,
+                var x = (evt.pageX - offsetLeft) / canvasScale.x - offsetLocal.x,
+                    y = (evt.pageY - offsetTop) / canvasScale.y - offsetLocal.y,
                     startPos = {},
                     n = -1;
                 evt.id = 0;
@@ -520,8 +520,8 @@ bento.define('bento/managers/input', [
             },
             addTvTouchPosition = function (evt, n, type) {
                 var touch = evt.changedTouches[n],
-                    x = (touch.pageX - offsetLeft) / canvasScale.x + offsetLocal.x,
-                    y = (touch.pageY - offsetTop) / canvasScale.y + offsetLocal.y,
+                    x = (touch.pageX - offsetLeft) / canvasScale.x - offsetLocal.x,
+                    y = (touch.pageY - offsetTop) / canvasScale.y - offsetLocal.y,
                     startPos = {};
 
                 evt.preventDefault();

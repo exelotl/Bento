@@ -13,8 +13,13 @@
  */
 bento.define('bento/managers/object', [
     'bento/utils',
-    'bento/eventsystem'
-], function (Utils, EventSystem) {
+    'bento/eventsystem',
+    'bento/math/vector2'
+], function (
+    Utils,
+    EventSystem,
+    Vector2
+) {
     'use strict';
     return function (getGameData, settings) {
         var objects = [];
@@ -28,6 +33,7 @@ bento.define('bento/managers/object', [
         var isPaused = 0;
         var isStopped = false;
         var fpsMeter;
+        var offset = settings.offset || new Vector2(0, 0);
         var sortDefault = function () {
             // default array sorting method (unstable)
             objects.sort(function (a, b) {
@@ -122,6 +128,9 @@ bento.define('bento/managers/object', [
 
             EventSystem.fire('preDraw', data);
             data.renderer.begin();
+            if (offset.x !== 0 || offset.y !== 0) {
+                data.renderer.translate(offset.x, offset.y);
+            }
             EventSystem.fire('preDrawLoop', data);
             for (i = 0; i < objects.length; ++i) {
                 object = objects[i];
@@ -481,6 +490,10 @@ bento.define('bento/managers/object', [
             // useful for debugging, may be removed later so leaving this undocumented
             getCurrentObject: function () {
                 return currentObject;
+            },
+            //drawing offset for all the objects
+            setOffset: function (o) {
+                offset = o;
             }
         };
 

@@ -24,8 +24,7 @@ bento.define('bento/math/rectangle', [
             return new Rectangle(x, y, width, height);
         }
         if (Utils.isDev()) {
-            if (
-                !Utils.isNumber(x) ||
+            if (!Utils.isNumber(x) ||
                 !Utils.isNumber(y) ||
                 !Utils.isNumber(width) ||
                 !Utils.isNumber(height) ||
@@ -246,6 +245,32 @@ bento.define('bento/math/rectangle', [
      */
     Rectangle.prototype.offset = function (pos) {
         return new Rectangle(this.x + pos.x, this.y + pos.y, this.width, this.height);
+    };
+    /**
+     * Returns a new rectangle that has been multiplied by a vector
+     * @function
+     * @param {Vector2} vector - Multiplying vector
+     * @returns {Rectangle} Returns a new rectangle instance
+     * @instance
+     * @name multiply
+     * @snippet #Rectangle.multiply|Rectangle
+        multiply(${1:vector});
+     */
+    Rectangle.prototype.multiply = function (vec) {
+        return new Rectangle(this.x * vec.x, this.y * vec.y, this.width * vec.x, this.height * vec.x);
+    };
+    /**
+     * Returns a new rectangle that has been multiplied by a vector
+     * @function
+     * @param {Number} multiply - Multiplication
+     * @returns {Rectangle} Returns a new rectangle instance
+     * @instance
+     * @name scalarMultiply
+     * @snippet #Rectangle.scalarMultiply|Rectangle
+        scalarMultiply(${1:vector});
+     */
+    Rectangle.prototype.scalarMultiply = function (m) {
+        return new Rectangle(this.x * m, this.y * m, this.width * m, this.height * m);
     };
     /**
      * Clones rectangle
