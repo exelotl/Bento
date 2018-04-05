@@ -15,13 +15,12 @@ PackedImage(${1:image});
  * @snippet PackedImage|frame
 PackedImage(${1:image}, new Rectangle(${2:0}, ${3:0}, ${4:32}, ${5:32}));
  */
-bento.define('bento/packedimage', [
-    'bento/math/rectangle'
-], function (Rectangle) {
-    return function (image, frame) {
-        var rectangle = frame ? new Rectangle(frame.x, frame.y, frame.w, frame.h) :
-            new Rectangle(0, 0, image.width, image.height);
-        rectangle.image = image;
-        return rectangle;
-    };
-});
+
+import Rectangle from 'bento/math/rectangle';
+ 
+export default function (image, frame) {
+    var rectangle = frame ? new Rectangle(frame.x, frame.y, frame.w, frame.h) :
+        new Rectangle(0, 0, image.width, image.height);
+    rectangle.image = image;
+    return rectangle;
+};

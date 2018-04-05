@@ -6,65 +6,62 @@
  * @moduleName PixiSprite
  * @returns Returns a component object to be attached to an entity.
  */
-bento.define('bento/components/pixi/sprite', [
-    'bento',
-    'bento/utils',
-    'bento/components/sprite'
-], function (Bento, Utils, Sprite) {
-    'use strict';
-    var PixiSprite = function (settings) {
-        if (!(this instanceof PixiSprite)) {
-            return new PixiSprite(settings);
-        }
-        Sprite.call(this, settings);
-        this.sprite = new window.PIXI.Sprite();
-    };
-    PixiSprite.prototype = Object.create(Sprite.prototype);
-    PixiSprite.prototype.constructor = PixiSprite;
-    PixiSprite.prototype.draw = function (data) {
-        var entity = data.entity;
+import Bento from 'bento';
+import Utils from 'bento/utils';
+import Sprite from 'bento/components/sprite';
 
-        if (!this.currentAnimation || !this.visible) {
-            return;
-        }
-        this.updateFrame();
-        this.updateSprite(
-            this.spriteImage,
-            this.sourceX,
-            this.sourceY,
-            this.frameWidth,
-            this.frameHeight
-        );
+var PixiSprite = function (settings) {
+    if (!(this instanceof PixiSprite)) {
+        return new PixiSprite(settings);
+    }
+    Sprite.call(this, settings);
+    this.sprite = new window.PIXI.Sprite();
+};
+PixiSprite.prototype = Object.create(Sprite.prototype);
+PixiSprite.prototype.constructor = PixiSprite;
+PixiSprite.prototype.draw = function (data) {
+    var entity = data.entity;
 
-        // draw with pixi
-        data.renderer.translate(-Math.round(this.origin.x), -Math.round(this.origin.y));
-        data.renderer.drawPixi(this.sprite);
-        data.renderer.translate(Math.round(this.origin.x), Math.round(this.origin.y));
-    };
-    PixiSprite.prototype.updateSprite = function (packedImage, sx, sy, sw, sh) {
-        var rectangle;
-        var sprite;
-        var texture;
-        var image;
+    if (!this.currentAnimation || !this.visible) {
+        return;
+    }
+    this.updateFrame();
+    this.updateSprite(
+        this.spriteImage,
+        this.sourceX,
+        this.sourceY,
+        this.frameWidth,
+        this.frameHeight
+    );
 
-        if (!packedImage) {
-            return;
-        }
-        image = packedImage.image;
-        if (!image.texture) {
-            // initialize pixi baseTexture
-            image.texture = new window.PIXI.BaseTexture(image, window.PIXI.SCALE_MODES.NEAREST);
-        }
-        rectangle = new window.PIXI.Rectangle(sx, sy, sw, sh);
-        texture = new window.PIXI.Texture(image.texture, rectangle);
-        texture._updateUvs();
+    // draw with pixi
+    data.renderer.translate(-Math.round(this.origin.x), -Math.round(this.origin.y));
+    data.renderer.drawPixi(this.sprite);
+    data.renderer.translate(Math.round(this.origin.x), Math.round(this.origin.y));
+};
+PixiSprite.prototype.updateSprite = function (packedImage, sx, sy, sw, sh) {
+    var rectangle;
+    var sprite;
+    var texture;
+    var image;
 
-        this.sprite.texture = texture;
-    };
+    if (!packedImage) {
+        return;
+    }
+    image = packedImage.image;
+    if (!image.texture) {
+        // initialize pixi baseTexture
+        image.texture = new window.PIXI.BaseTexture(image, window.PIXI.SCALE_MODES.NEAREST);
+    }
+    rectangle = new window.PIXI.Rectangle(sx, sy, sw, sh);
+    texture = new window.PIXI.Texture(image.texture, rectangle);
+    texture._updateUvs();
 
-    PixiSprite.prototype.toString = function () {
-        return '[object PixiSprite]';
-    };
+    this.sprite.texture = texture;
+};
 
-    return PixiSprite;
-});
+PixiSprite.prototype.toString = function () {
+    return '[object PixiSprite]';
+};
+
+return PixiSprite;

@@ -11,61 +11,59 @@
  * @param {Boolean} isLandscape - Game is landscape, swap operations of width and height
  * @returns Rectangle
  */
-bento.define('bento/autoresize', [
-    'bento/utils'
-], function (Utils) {
-    return function (canvasDimension, minSize, maxSize, isLandscape) {
-        var originalDimension = canvasDimension.clone(),
-            innerWidth = window.innerWidth,
-            innerHeight = window.innerHeight,
-            devicePixelRatio = window.devicePixelRatio,
-            deviceHeight = !isLandscape ? innerHeight * devicePixelRatio : innerWidth * devicePixelRatio,
-            deviceWidth = !isLandscape ? innerWidth * devicePixelRatio : innerHeight * devicePixelRatio,
-            swap = function () {
-                // swap width and height
-                var temp = canvasDimension.width;
-                canvasDimension.width = canvasDimension.height;
-                canvasDimension.height = temp;
-            },
-            setup = function () {
-                var ratio = deviceWidth / deviceHeight;
 
-                if (ratio > 1) {
-                    // user is holding device wrong
-                    ratio = 1 / ratio;
-                }
+import Utils from 'bento/utils';
+export default function (canvasDimension, minSize, maxSize, isLandscape) {
+    var originalDimension = canvasDimension.clone(),
+        innerWidth = window.innerWidth,
+        innerHeight = window.innerHeight,
+        devicePixelRatio = window.devicePixelRatio,
+        deviceHeight = !isLandscape ? innerHeight * devicePixelRatio : innerWidth * devicePixelRatio,
+        deviceWidth = !isLandscape ? innerWidth * devicePixelRatio : innerHeight * devicePixelRatio,
+        swap = function () {
+            // swap width and height
+            var temp = canvasDimension.width;
+            canvasDimension.width = canvasDimension.height;
+            canvasDimension.height = temp;
+        },
+        setup = function () {
+            var ratio = deviceWidth / deviceHeight;
 
-                canvasDimension.height = canvasDimension.width / ratio;
+            if (ratio > 1) {
+                // user is holding device wrong
+                ratio = 1 / ratio;
+            }
 
-                // exceed min size?
-                if (canvasDimension.height < minSize) {
-                    canvasDimension.height = minSize;
-                    canvasDimension.width = ratio * canvasDimension.height;
-                }
-                if (canvasDimension.height > maxSize) {
-                    canvasDimension.height = maxSize;
-                    canvasDimension.width = ratio * canvasDimension.height;
-                }
+            canvasDimension.height = canvasDimension.width / ratio;
 
-                if (isLandscape) {
-                    swap();
-                }
+            // exceed min size?
+            if (canvasDimension.height < minSize) {
+                canvasDimension.height = minSize;
+                canvasDimension.width = ratio * canvasDimension.height;
+            }
+            if (canvasDimension.height > maxSize) {
+                canvasDimension.height = maxSize;
+                canvasDimension.width = ratio * canvasDimension.height;
+            }
 
-                console.log('Screen size: ' + innerWidth * devicePixelRatio + ' x ' + innerHeight * devicePixelRatio);
-                console.log('Resolution: ' + canvasDimension.width.toFixed(2) + ' x ' + canvasDimension.height.toFixed(2));
-                return canvasDimension;
-            },
-            scrollAndResize = function () {
-                window.scrollTo(0, 0);
-            };
+            if (isLandscape) {
+                swap();
+            }
+
+            console.log('Screen size: ' + innerWidth * devicePixelRatio + ' x ' + innerHeight * devicePixelRatio);
+            console.log('Resolution: ' + canvasDimension.width.toFixed(2) + ' x ' + canvasDimension.height.toFixed(2));
+            return canvasDimension;
+        },
+        scrollAndResize = function () {
+            window.scrollTo(0, 0);
+        };
 
 
-        window.addEventListener('orientationchange', scrollAndResize, false);
+    window.addEventListener('orientationchange', scrollAndResize, false);
 
-        if (isLandscape) {
-            swap();
-        }
+    if (isLandscape) {
+        swap();
+    }
 
-        return setup();
-    };
-});
+    return setup();
+};

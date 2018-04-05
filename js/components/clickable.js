@@ -51,306 +51,296 @@ Clickable({
  * @param {Vector2} evt.diffWorldPosition - Only when touch ends. Difference position between where the touch started.
  * @param {Vector2} evt.diffLocalPosition - Only when touch ends. Difference position between where the touch started.
  */
-bento.define('bento/components/clickable', [
-    'bento',
-    'bento/utils',
-    'bento/math/vector2',
-    'bento/math/transformmatrix',
-    'bento/eventsystem',
-    'bento/sortedeventsystem'
-], function (
-    Bento,
-    Utils,
-    Vector2,
-    Matrix,
-    EventSystem,
-    SortedEventSystem
-) {
-    'use strict';
 
-    var clickables = [];
-    var isPaused = function (entity) {
-        var rootPause = 0;
-        if (!Bento.objects || !entity) {
-            return false;
-        }
+import Bento from 'bento';
+import Utils from 'bento/utils';
+import Vector2 from 'bento/math/vector2';
+import Matrix from 'bento/math/transformmatrix';
+import EventSystem from 'bento/eventsystem';
+import SortedEventSystem from 'bento/sortedeventsystem';
+
+var clickables = [];
+var isPaused = function (entity) {
+    var rootPause = 0;
+    if (!Bento.objects || !entity) {
+        return false;
+    }
+    rootPause = entity.updateWhenPaused;
+    // find root parent
+    while (entity.parent) {
+        entity = entity.parent;
         rootPause = entity.updateWhenPaused;
-        // find root parent
-        while (entity.parent) {
-            entity = entity.parent;
-            rootPause = entity.updateWhenPaused;
-        }
+    }
 
-        return rootPause < Bento.objects.isPaused();
-    };
+    return rootPause < Bento.objects.isPaused();
+};
 
-    var isPausedComponent = function (component) {
-        return component.updateWhenPaused < Bento.objects.isPaused();
-    };
+var isPausedComponent = function (component) {
+    return component.updateWhenPaused < Bento.objects.isPaused();
+};
 
-    var Clickable = function (settings) {
-        if (!(this instanceof Clickable)) {
-            return new Clickable(settings);
-        }
-        var nothing = null;
-        this.entity = null;
-        this.parent = null;
-        this.rootIndex = -1;
-        /**
-         * Name of the component
-         * @instance
-         * @default 'clickable'
-         * @name name
-         */
-        this.name = 'clickable';
-        /**
-         * Whether the pointer is over the entity
-         * @instance
-         * @default false
-         * @name isHovering
-         */
-        this.isHovering = false;
-        /**
-         * Ignore the pause during pointerUp event. If false, the pointerUp event will not be called if the parent entity is paused.
-         * This can have a negative side effect in some cases: the pointerUp is never called and your code might be waiting for that.
-         * Just make sure you know what you are doing!
-         * @instance
-         * @default true
-         * @name ignorePauseDuringPointerUpEvent
-         */
-        this.ignorePauseDuringPointerUpEvent = (settings && Utils.isDefined(settings.ignorePauseDuringPointerUpEvent)) ?
-            settings.ignorePauseDuringPointerUpEvent : true;
-        /**
-         * Id number of the pointer holding entity
-         * @instance
-         * @default null
-         * @name holdId
-         */
-        this.holdId = null;
-        this.isPointerDown = false;
-        this.initialized = false;
-        /**
-         * Should the clickable care about (z)order of objects?
-         * @instance
-         * @default false
-         * @name sort
-         */
-        this.sort = settings.sort || false;
-        /**
-         * Clickable's updateWhenPaused check.
-         * Has higher priority than the entity's updateWhenPaused if non-zero
-         * @instance
-         * @default false
-         * @name updateWhenPaused
-         */
-        this.updateWhenPaused = settings.updateWhenPaused;
+var Clickable = function (settings) {
+    if (!(this instanceof Clickable)) {
+        return new Clickable(settings);
+    }
+    var nothing = null;
+    this.entity = null;
+    this.parent = null;
+    this.rootIndex = -1;
+    /**
+     * Name of the component
+     * @instance
+     * @default 'clickable'
+     * @name name
+     */
+    this.name = 'clickable';
+    /**
+     * Whether the pointer is over the entity
+     * @instance
+     * @default false
+     * @name isHovering
+     */
+    this.isHovering = false;
+    /**
+     * Ignore the pause during pointerUp event. If false, the pointerUp event will not be called if the parent entity is paused.
+     * This can have a negative side effect in some cases: the pointerUp is never called and your code might be waiting for that.
+     * Just make sure you know what you are doing!
+     * @instance
+     * @default true
+     * @name ignorePauseDuringPointerUpEvent
+     */
+    this.ignorePauseDuringPointerUpEvent = (settings && Utils.isDefined(settings.ignorePauseDuringPointerUpEvent)) ?
+        settings.ignorePauseDuringPointerUpEvent : true;
+    /**
+     * Id number of the pointer holding entity
+     * @instance
+     * @default null
+     * @name holdId
+     */
+    this.holdId = null;
+    this.isPointerDown = false;
+    this.initialized = false;
+    /**
+     * Should the clickable care about (z)order of objects?
+     * @instance
+     * @default false
+     * @name sort
+     */
+    this.sort = settings.sort || false;
+    /**
+     * Clickable's updateWhenPaused check.
+     * Has higher priority than the entity's updateWhenPaused if non-zero
+     * @instance
+     * @default false
+     * @name updateWhenPaused
+     */
+    this.updateWhenPaused = settings.updateWhenPaused;
 
-        this.callbacks = {
-            pointerDown: settings.pointerDown || nothing,
-            pointerUp: settings.pointerUp || nothing,
-            pointerMove: settings.pointerMove || nothing,
-            // when clicking on the object
-            onClick: settings.onClick || nothing,
-            onClickUp: settings.onClickUp || nothing,
-            onClickMiss: settings.onClickMiss || nothing,
-            onHold: settings.onHold || nothing,
-            onHoldLeave: settings.onHoldLeave || nothing,
-            onHoldEnter: settings.onHoldEnter || nothing,
-            onHoldEnd: settings.onHoldEnd || nothing,
-            onHoverLeave: settings.onHoverLeave || nothing,
-            onHoverEnter: settings.onHoverEnter || nothing
-        };
-        /**
-         * Static array that holds a reference to all currently active Clickables
-         * @type {Array}
-         */
-        this.clickables = clickables;
-    };
-
-    Clickable.prototype.destroy = function () {
-        var index = clickables.indexOf(this),
-            i = 0,
-            len = 0;
-
-        if (index > -1)
-            clickables[index] = null;
-        // clear the array if it consists of only null's
-        for (i = 0, len = clickables.length; i < len; ++i) {
-            if (clickables[i])
-                break;
-            if (i === len - 1)
-                clickables.length = 0;
-        }
-
-        if (this.sort) {
-            SortedEventSystem.off('pointerDown', this.pointerDown, this);
-            SortedEventSystem.off('pointerUp', this.pointerUp, this);
-            SortedEventSystem.off('pointerMove', this.pointerMove, this);
-        } else {
-            EventSystem.off('pointerDown', this.pointerDown, this);
-            EventSystem.off('pointerUp', this.pointerUp, this);
-            EventSystem.off('pointerMove', this.pointerMove, this);
-        }
-        this.initialized = false;
-    };
-    Clickable.prototype.start = function () {
-        if (this.initialized) {
-            return;
-        }
-
-        clickables.push(this);
-
-        if (this.sort) {
-            SortedEventSystem.on(this, 'pointerDown', this.pointerDown, this);
-            SortedEventSystem.on(this, 'pointerUp', this.pointerUp, this);
-            SortedEventSystem.on(this, 'pointerMove', this.pointerMove, this);
-        } else {
-            EventSystem.on('pointerDown', this.pointerDown, this);
-            EventSystem.on('pointerUp', this.pointerUp, this);
-            EventSystem.on('pointerMove', this.pointerMove, this);
-        }
-        this.initialized = true;
-    };
-    Clickable.prototype.update = function () {
-        if (this.isHovering && this.isPointerDown && this.callbacks.onHold) {
-            this.callbacks.onHold();
-        }
-    };
-    Clickable.prototype.cloneEvent = function (evt) {
-        return {
-            id: evt.id,
-            position: evt.position.clone(),
-            eventType: evt.eventType,
-            localPosition: evt.localPosition.clone(),
-            worldPosition: evt.worldPosition.clone(),
-            diffPosition: evt.diffPosition ? evt.diffPosition.clone() : undefined
-        };
-    };
-    Clickable.prototype.pointerDown = function (evt) {
-        var e;
-        var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
-        if (isInActive) {
-            return;
-        }
-        e = this.transformEvent(evt);
-        this.isPointerDown = true;
-        if (this.callbacks.pointerDown) {
-            this.callbacks.pointerDown.call(this, e);
-        }
-        if (this.entity.getBoundingBox) {
-            this.checkHovering.call(this, e, true);
-        }
-    };
-    Clickable.prototype.pointerUp = function (evt) {
-        var e;
-        var mousePosition;
-        var callbacks = this.callbacks;
-
-        // a pointer up could get missed during a pause
-        var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
-        if (!this.ignorePauseDuringPointerUpEvent && isInActive) {
-            return;
-        }
-        e = this.transformEvent(evt);
-        mousePosition = e.localPosition;
-        this.isPointerDown = false;
-        if (callbacks.pointerUp) {
-            callbacks.pointerUp.call(this, e);
-        }
-        // onClickUp respects isPaused
-        if (this.entity.getBoundingBox().hasPosition(mousePosition) && !isInActive) {
-            if (callbacks.onClickUp) {
-                callbacks.onClickUp.call(this, e);
-            }
-            if (this.holdId === e.id) {
-                if (callbacks.onHoldEnd) {
-                    callbacks.onHoldEnd.call(this, e);
-                }
-            }
-        }
-        this.holdId = null;
-    };
-    Clickable.prototype.pointerMove = function (evt) {
-        var e; // don't calculate transformed event until last moment to save cpu
-        var callbacks = this.callbacks;
-        var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
-        if (isInActive) {
-            return;
-        }
-        if (callbacks.pointerMove) {
-            if (!e) {
-                e = this.transformEvent(evt);
-            }
-            callbacks.pointerMove.call(this, e);
-        }
-        // hovering?
-        if (
-            this.entity.getBoundingBox &&
-            // only relevant if hover callbacks are implmented
-            (callbacks.onHoldEnter || callbacks.onHoldLeave || callbacks.onHoverLeave)
-        ) {
-            if (!e) {
-                e = this.transformEvent(evt);
-            }
-            this.checkHovering.call(this, e);
-        }
-    };
-    Clickable.prototype.checkHovering = function (evt, clicked) {
-        var mousePosition = evt.localPosition;
-        var callbacks = this.callbacks;
-        if (this.entity.getBoundingBox().hasPosition(mousePosition)) {
-            if (!this.isHovering && this.holdId === evt.id) {
-                if (callbacks.onHoldEnter) {
-                    callbacks.onHoldEnter.call(this, evt);
-                }
-            }
-            if (!this.isHovering && callbacks.onHoverEnter) {
-                callbacks.onHoverEnter.call(this, evt);
-            }
-            this.isHovering = true;
-            if (clicked) {
-                this.holdId = evt.id;
-                if (callbacks.onClick) {
-                    callbacks.onClick.call(this, evt);
-                }
-            }
-        } else {
-            if (this.isHovering && this.holdId === evt.id) {
-                if (callbacks.onHoldLeave) {
-                    callbacks.onHoldLeave.call(this, evt);
-                }
-            }
-            if (this.isHovering && callbacks.onHoverLeave) {
-                callbacks.onHoverLeave.call(this, evt);
-            }
-            this.isHovering = false;
-            if (clicked && callbacks.onClickMiss) {
-                callbacks.onClickMiss.call(this, evt);
-            }
-        }
+    this.callbacks = {
+        pointerDown: settings.pointerDown || nothing,
+        pointerUp: settings.pointerUp || nothing,
+        pointerMove: settings.pointerMove || nothing,
+        // when clicking on the object
+        onClick: settings.onClick || nothing,
+        onClickUp: settings.onClickUp || nothing,
+        onClickMiss: settings.onClickMiss || nothing,
+        onHold: settings.onHold || nothing,
+        onHoldLeave: settings.onHoldLeave || nothing,
+        onHoldEnter: settings.onHoldEnter || nothing,
+        onHoldEnd: settings.onHoldEnd || nothing,
+        onHoverLeave: settings.onHoverLeave || nothing,
+        onHoverEnter: settings.onHoverEnter || nothing
     };
     /**
-     * Whether the clickable is receiving events currently. If the parent entity is paused, the clickable
-     * is not active.
-     * @function
-     * @instance
-     * @returns {Boolean} Active state
-     * @name isPaused
+     * Static array that holds a reference to all currently active Clickables
+     * @type {Array}
      */
-    Clickable.prototype.isPaused = function () {
-        return this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
-    };
+    this.clickables = clickables;
+};
 
-    Clickable.prototype.transformEvent = function (evt) {
-        evt.localPosition = this.entity.toComparablePosition(evt.worldPosition);
-        return evt;
-    };
-    Clickable.prototype.attached = function (data) {
-        this.entity = data.entity;
-    };
-    Clickable.prototype.toString = function () {
-        return '[object Clickable]';
-    };
+Clickable.prototype.destroy = function () {
+    var index = clickables.indexOf(this),
+        i = 0,
+        len = 0;
 
-    return Clickable;
-});
+    if (index > -1)
+        clickables[index] = null;
+    // clear the array if it consists of only null's
+    for (i = 0, len = clickables.length; i < len; ++i) {
+        if (clickables[i])
+            break;
+        if (i === len - 1)
+            clickables.length = 0;
+    }
+
+    if (this.sort) {
+        SortedEventSystem.off('pointerDown', this.pointerDown, this);
+        SortedEventSystem.off('pointerUp', this.pointerUp, this);
+        SortedEventSystem.off('pointerMove', this.pointerMove, this);
+    } else {
+        EventSystem.off('pointerDown', this.pointerDown, this);
+        EventSystem.off('pointerUp', this.pointerUp, this);
+        EventSystem.off('pointerMove', this.pointerMove, this);
+    }
+    this.initialized = false;
+};
+Clickable.prototype.start = function () {
+    if (this.initialized) {
+        return;
+    }
+
+    clickables.push(this);
+
+    if (this.sort) {
+        SortedEventSystem.on(this, 'pointerDown', this.pointerDown, this);
+        SortedEventSystem.on(this, 'pointerUp', this.pointerUp, this);
+        SortedEventSystem.on(this, 'pointerMove', this.pointerMove, this);
+    } else {
+        EventSystem.on('pointerDown', this.pointerDown, this);
+        EventSystem.on('pointerUp', this.pointerUp, this);
+        EventSystem.on('pointerMove', this.pointerMove, this);
+    }
+    this.initialized = true;
+};
+Clickable.prototype.update = function () {
+    if (this.isHovering && this.isPointerDown && this.callbacks.onHold) {
+        this.callbacks.onHold();
+    }
+};
+Clickable.prototype.cloneEvent = function (evt) {
+    return {
+        id: evt.id,
+        position: evt.position.clone(),
+        eventType: evt.eventType,
+        localPosition: evt.localPosition.clone(),
+        worldPosition: evt.worldPosition.clone(),
+        diffPosition: evt.diffPosition ? evt.diffPosition.clone() : undefined
+    };
+};
+Clickable.prototype.pointerDown = function (evt) {
+    var e;
+    var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
+    if (isInActive) {
+        return;
+    }
+    e = this.transformEvent(evt);
+    this.isPointerDown = true;
+    if (this.callbacks.pointerDown) {
+        this.callbacks.pointerDown.call(this, e);
+    }
+    if (this.entity.getBoundingBox) {
+        this.checkHovering.call(this, e, true);
+    }
+};
+Clickable.prototype.pointerUp = function (evt) {
+    var e;
+    var mousePosition;
+    var callbacks = this.callbacks;
+
+    // a pointer up could get missed during a pause
+    var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
+    if (!this.ignorePauseDuringPointerUpEvent && isInActive) {
+        return;
+    }
+    e = this.transformEvent(evt);
+    mousePosition = e.localPosition;
+    this.isPointerDown = false;
+    if (callbacks.pointerUp) {
+        callbacks.pointerUp.call(this, e);
+    }
+    // onClickUp respects isPaused
+    if (this.entity.getBoundingBox().hasPosition(mousePosition) && !isInActive) {
+        if (callbacks.onClickUp) {
+            callbacks.onClickUp.call(this, e);
+        }
+        if (this.holdId === e.id) {
+            if (callbacks.onHoldEnd) {
+                callbacks.onHoldEnd.call(this, e);
+            }
+        }
+    }
+    this.holdId = null;
+};
+Clickable.prototype.pointerMove = function (evt) {
+    var e; // don't calculate transformed event until last moment to save cpu
+    var callbacks = this.callbacks;
+    var isInActive = this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
+    if (isInActive) {
+        return;
+    }
+    if (callbacks.pointerMove) {
+        if (!e) {
+            e = this.transformEvent(evt);
+        }
+        callbacks.pointerMove.call(this, e);
+    }
+    // hovering?
+    if (
+        this.entity.getBoundingBox &&
+        // only relevant if hover callbacks are implmented
+        (callbacks.onHoldEnter || callbacks.onHoldLeave || callbacks.onHoverLeave)
+    ) {
+        if (!e) {
+            e = this.transformEvent(evt);
+        }
+        this.checkHovering.call(this, e);
+    }
+};
+Clickable.prototype.checkHovering = function (evt, clicked) {
+    var mousePosition = evt.localPosition;
+    var callbacks = this.callbacks;
+    if (this.entity.getBoundingBox().hasPosition(mousePosition)) {
+        if (!this.isHovering && this.holdId === evt.id) {
+            if (callbacks.onHoldEnter) {
+                callbacks.onHoldEnter.call(this, evt);
+            }
+        }
+        if (!this.isHovering && callbacks.onHoverEnter) {
+            callbacks.onHoverEnter.call(this, evt);
+        }
+        this.isHovering = true;
+        if (clicked) {
+            this.holdId = evt.id;
+            if (callbacks.onClick) {
+                callbacks.onClick.call(this, evt);
+            }
+        }
+    } else {
+        if (this.isHovering && this.holdId === evt.id) {
+            if (callbacks.onHoldLeave) {
+                callbacks.onHoldLeave.call(this, evt);
+            }
+        }
+        if (this.isHovering && callbacks.onHoverLeave) {
+            callbacks.onHoverLeave.call(this, evt);
+        }
+        this.isHovering = false;
+        if (clicked && callbacks.onClickMiss) {
+            callbacks.onClickMiss.call(this, evt);
+        }
+    }
+};
+/**
+ * Whether the clickable is receiving events currently. If the parent entity is paused, the clickable
+ * is not active.
+ * @function
+ * @instance
+ * @returns {Boolean} Active state
+ * @name isPaused
+ */
+Clickable.prototype.isPaused = function () {
+    return this.updateWhenPaused ? isPausedComponent(this) : isPaused(this.entity);
+};
+
+Clickable.prototype.transformEvent = function (evt) {
+    evt.localPosition = this.entity.toComparablePosition(evt.worldPosition);
+    return evt;
+};
+Clickable.prototype.attached = function (data) {
+    this.entity = data.entity;
+};
+Clickable.prototype.toString = function () {
+    return '[object Clickable]';
+};
+
+export default Clickable;

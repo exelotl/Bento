@@ -28,294 +28,281 @@ ClickButton({
     }
 });
  */
-bento.define('bento/gui/clickbutton', [
-    'bento',
-    'bento/math/vector2',
-    'bento/math/rectangle',
-    'bento/components/sprite',
-    'bento/components/nineslice',
-    'bento/components/clickable',
-    'bento/entity',
-    'bento/utils',
-    'bento/tween',
-    'bento/eventsystem'
-], function (
-    Bento,
-    Vector2,
-    Rectangle,
-    Sprite,
-    NineSlice,
-    Clickable,
-    Entity,
-    Utils,
-    Tween,
-    EventSystem
-) {
-    'use strict';
-    var ClickButton = function (settings) {
-        var viewport = Bento.getViewport();
-        var active = true;
-        var defaultAnimations = {
-            'up': {
-                speed: 0,
-                frames: [0]
-            },
-            'down': {
-                speed: 0,
-                frames: [1]
-            },
-            'inactive': {
-                speed: 0,
-                frames: [2]
-            }
-        };
-        if (settings.frameCountX * settings.frameCountY <= 2) {
-            delete defaultAnimations.inactive;
+
+import Bento from 'bento';
+import Vector2 from 'bento/math/vector2';
+import Rectangle from 'bento/math/rectangle';
+import Sprite from 'bento/components/sprite';
+import NineSlice from 'bento/components/nineslice';
+import Clickable from 'bento/components/clickable';
+import Entity from 'bento/entity';
+import Utils from 'bento/utils';
+import Tween from 'bento/tween';
+import EventSystem from 'bento/eventsystem';
+
+var ClickButton = function (settings) {
+    var viewport = Bento.getViewport();
+    var active = true;
+    var defaultAnimations = {
+        'up': {
+            speed: 0,
+            frames: [0]
+        },
+        'down': {
+            speed: 0,
+            frames: [1]
+        },
+        'inactive': {
+            speed: 0,
+            frames: [2]
         }
-        var animations = settings.animations || defaultAnimations;
-        var nsSettings = settings.nineSliceSettings || null;
-        var nineSlice = !nsSettings ? null : new NineSlice({
-            image: settings.image,
-            imageName: settings.imageName,
-            originRelative: settings.originRelative || new Vector2(0.5, 0.5),
-            frameWidth: settings.frameWidth,
-            frameHeight: settings.frameHeight,
-            frameCountX: settings.frameCountX,
-            frameCountY: settings.frameCountY,
-            width: nsSettings.width,
-            height: nsSettings.height,
-            animations: animations
-        });
-        var sprite = nineSlice ? null : settings.sprite || new Sprite({
-            image: settings.image,
-            imageName: settings.imageName,
-            originRelative: settings.originRelative || new Vector2(0.5, 0.5),
-            padding: settings.padding,
-            frameWidth: settings.frameWidth,
-            frameHeight: settings.frameHeight,
-            frameCountX: settings.frameCountX,
-            frameCountY: settings.frameCountY,
-            animations: animations
-        });
-        var visualComponent = nineSlice || sprite;
-        // workaround for pointerUp/onHoldEnd order of events
-        var wasHoldingThis = false;
-        var clickable = new Clickable({
-            sort: settings.sort,
-            ignorePauseDuringPointerUpEvent: settings.ignorePauseDuringPointerUpEvent,
-            onClick: function (data) {
-                wasHoldingThis = false;
-                if (!active || ClickButton.currentlyPressing) {
-                    return;
-                }
-                ClickButton.currentlyPressing = entity;
-                setAnimation('down');
-                if (settings.onButtonDown) {
-                    settings.onButtonDown.apply(entity, [data]);
-                }
-                EventSystem.fire('clickButton-onButtonDown', {
-                    entity: entity,
-                    event: 'onClick',
-                    data: data
-                });
-            },
-            onHoldEnter: function (data) {
-                if (!active) {
-                    return;
-                }
-                setAnimation('down');
-                if (settings.onButtonDown) {
-                    settings.onButtonDown.apply(entity, [data]);
-                }
-                EventSystem.fire('clickButton-onButtonDown', {
-                    entity: entity,
-                    event: 'onHoldEnter',
-                    data: data
-                });
-            },
-            onHoldLeave: function (data) {
-                if (!active) {
-                    return;
-                }
-                setAnimation('up');
-                if (settings.onButtonUp) {
-                    settings.onButtonUp.apply(entity, [data]);
-                }
-                EventSystem.fire('clickButton-onButtonUp', {
-                    entity: entity,
-                    event: 'onHoldLeave',
-                    data: data
-                });
-            },
-            pointerUp: function (data) {
-                if (!active) {
-                    return;
-                }
-                setAnimation('up');
-                if (settings.onButtonUp) {
-                    settings.onButtonUp.apply(entity, [data]);
-                }
-                EventSystem.fire('clickButton-onButtonUp', {
-                    entity: entity,
-                    event: 'pointerUp',
-                    data: data
-                });
-                if (ClickButton.currentlyPressing === entity) {
-                    wasHoldingThis = true;
-                    ClickButton.currentlyPressing = null;
-                }
-            },
-            onHoldEnd: function (data) {
-                if (active && settings.onClick && (ClickButton.currentlyPressing === entity || wasHoldingThis)) {
-                    wasHoldingThis = false;
-                    settings.onClick.apply(entity, [data]);
-                    if (settings.sfx) {
-                        Bento.audio.stopSound(settings.sfx);
-                        Bento.audio.playSound(settings.sfx);
-                    }
-                    EventSystem.fire('clickButton-onClick', {
-                        entity: entity,
-                        event: 'onHoldEnd',
-                        data: data
-                    });
-                }
-                if (ClickButton.currentlyPressing === entity) {
-                    ClickButton.currentlyPressing = null;
-                }
-            },
-            onClickMiss: function (data) {
-                if (settings.onClickMiss) {
-                    settings.onClickMiss(data);
-                }
+    };
+    if (settings.frameCountX * settings.frameCountY <= 2) {
+        delete defaultAnimations.inactive;
+    }
+    var animations = settings.animations || defaultAnimations;
+    var nsSettings = settings.nineSliceSettings || null;
+    var nineSlice = !nsSettings ? null : new NineSlice({
+        image: settings.image,
+        imageName: settings.imageName,
+        originRelative: settings.originRelative || new Vector2(0.5, 0.5),
+        frameWidth: settings.frameWidth,
+        frameHeight: settings.frameHeight,
+        frameCountX: settings.frameCountX,
+        frameCountY: settings.frameCountY,
+        width: nsSettings.width,
+        height: nsSettings.height,
+        animations: animations
+    });
+    var sprite = nineSlice ? null : settings.sprite || new Sprite({
+        image: settings.image,
+        imageName: settings.imageName,
+        originRelative: settings.originRelative || new Vector2(0.5, 0.5),
+        padding: settings.padding,
+        frameWidth: settings.frameWidth,
+        frameHeight: settings.frameHeight,
+        frameCountX: settings.frameCountX,
+        frameCountY: settings.frameCountY,
+        animations: animations
+    });
+    var visualComponent = nineSlice || sprite;
+    // workaround for pointerUp/onHoldEnd order of events
+    var wasHoldingThis = false;
+    var clickable = new Clickable({
+        sort: settings.sort,
+        ignorePauseDuringPointerUpEvent: settings.ignorePauseDuringPointerUpEvent,
+        onClick: function (data) {
+            wasHoldingThis = false;
+            if (!active || ClickButton.currentlyPressing) {
+                return;
             }
-        });
-        var entitySettings = Utils.extend({
-            z: 0,
-            name: 'clickButton',
-            position: new Vector2(0, 0),
-            family: ['buttons'],
-            init: function () {
-                setActive(active);
+            ClickButton.currentlyPressing = entity;
+            setAnimation('down');
+            if (settings.onButtonDown) {
+                settings.onButtonDown.apply(entity, [data]);
             }
-        }, settings, true);
-
-        // merge components array
-        entitySettings.components = [
-            visualComponent,
-            clickable
-        ].concat(settings.components || []);
-
-        var setActive = function (bool) {
-            active = bool;
-
-            animations = visualComponent.animations || animations;
-
+            EventSystem.fire('clickButton-onButtonDown', {
+                entity: entity,
+                event: 'onClick',
+                data: data
+            });
+        },
+        onHoldEnter: function (data) {
             if (!active) {
-                if (ClickButton.currentlyPressing === entity) {
-                    ClickButton.currentlyPressing = null;
+                return;
+            }
+            setAnimation('down');
+            if (settings.onButtonDown) {
+                settings.onButtonDown.apply(entity, [data]);
+            }
+            EventSystem.fire('clickButton-onButtonDown', {
+                entity: entity,
+                event: 'onHoldEnter',
+                data: data
+            });
+        },
+        onHoldLeave: function (data) {
+            if (!active) {
+                return;
+            }
+            setAnimation('up');
+            if (settings.onButtonUp) {
+                settings.onButtonUp.apply(entity, [data]);
+            }
+            EventSystem.fire('clickButton-onButtonUp', {
+                entity: entity,
+                event: 'onHoldLeave',
+                data: data
+            });
+        },
+        pointerUp: function (data) {
+            if (!active) {
+                return;
+            }
+            setAnimation('up');
+            if (settings.onButtonUp) {
+                settings.onButtonUp.apply(entity, [data]);
+            }
+            EventSystem.fire('clickButton-onButtonUp', {
+                entity: entity,
+                event: 'pointerUp',
+                data: data
+            });
+            if (ClickButton.currentlyPressing === entity) {
+                wasHoldingThis = true;
+                ClickButton.currentlyPressing = null;
+            }
+        },
+        onHoldEnd: function (data) {
+            if (active && settings.onClick && (ClickButton.currentlyPressing === entity || wasHoldingThis)) {
+                wasHoldingThis = false;
+                settings.onClick.apply(entity, [data]);
+                if (settings.sfx) {
+                    Bento.audio.stopSound(settings.sfx);
+                    Bento.audio.playSound(settings.sfx);
                 }
-                if (animations.inactive) {
-                    setAnimation('inactive');
-                } else {
-                    setAnimation('up');
-                }
+                EventSystem.fire('clickButton-onClick', {
+                    entity: entity,
+                    event: 'onHoldEnd',
+                    data: data
+                });
+            }
+            if (ClickButton.currentlyPressing === entity) {
+                ClickButton.currentlyPressing = null;
+            }
+        },
+        onClickMiss: function (data) {
+            if (settings.onClickMiss) {
+                settings.onClickMiss(data);
+            }
+        }
+    });
+    var entitySettings = Utils.extend({
+        z: 0,
+        name: 'clickButton',
+        position: new Vector2(0, 0),
+        family: ['buttons'],
+        init: function () {
+            setActive(active);
+        }
+    }, settings, true);
+
+    // merge components array
+    entitySettings.components = [
+        visualComponent,
+        clickable
+    ].concat(settings.components || []);
+
+    var setActive = function (bool) {
+        active = bool;
+
+        animations = visualComponent.animations || animations;
+
+        if (!active) {
+            if (ClickButton.currentlyPressing === entity) {
+                ClickButton.currentlyPressing = null;
+            }
+            if (animations.inactive) {
+                setAnimation('inactive');
             } else {
                 setAnimation('up');
             }
-        };
-
-        var setAnimation = function (animation) {
-            visualComponent.setAnimation(animation);
-        };
-
-        var entity = new Entity(entitySettings).extend({
-            /**
-             * Activates or deactives the button. Deactivated buttons cannot be pressed.
-             * @function
-             * @param {Bool} active - Should be active or not
-             * @instance
-             * @name setActive
-             * @snippet #ClickButton.setActive|snippet
-            setActive(${1:true});
-             */
-            setActive: setActive,
-            /**
-             * Performs the callback as if the button was clicked
-             * @function
-             * @instance
-             * @name doCallback
-             * @snippet #ClickButton.doCallback|snippet
-            doCallback();
-             */
-            doCallback: function () {
-                settings.onClick.apply(entity);
-            },
-            /**
-             * Check if the button is active
-             * @function
-             * @instance
-             * @name isActive
-             * @returns {Bool} Whether the button is active
-             * @snippet #ClickButton.isActive|Boolean
-            isActive(${1:true});
-             */
-            isActive: function () {
-                return active;
-            },
-            /**
-             * Set the size of the clickbutton if it's using a nine slice
-             * @function
-             * @param {Number} width
-             * @param {Number} height
-             * @instance
-             * @name setNineSliceSize
-             */
-            setNineSliceSize: function (width, height) {
-                if (visualComponent.name !== 'nineslice') {
-                    console.warn("LK_WARN: Don't use setNineSliceSize if the clickbutton uses a sprite.");
-                    return;
-                }
-                nsSettings.width = width;
-                nsSettings.height = height;
-                visualComponent.width = width;
-                visualComponent.height = height;
-            }
-        });
-
-        if (Utils.isDefined(settings.active)) {
-            active = settings.active;
+        } else {
+            setAnimation('up');
         }
-
-        // events for the button becoming active
-        entity.attach({
-            name: 'attachComponent',
-            start: function () {
-                EventSystem.fire('clickButton-start', {
-                    entity: entity
-                });
-            },
-            destroy: function () {
-                EventSystem.fire('clickButton-destroy', {
-                    entity: entity
-                });
-                if (ClickButton.currentlyPressing === entity) {
-                    ClickButton.currentlyPressing = null;
-                }
-            }
-        });
-
-        // active property
-        Object.defineProperty(entity, 'active', {
-            get: function () {
-                return active;
-            },
-            set: setActive
-        });
-
-        return entity;
     };
 
-    ClickButton.currentlyPressing = null;
+    var setAnimation = function (animation) {
+        visualComponent.setAnimation(animation);
+    };
 
-    return ClickButton;
-});
+    var entity = new Entity(entitySettings).extend({
+        /**
+         * Activates or deactives the button. Deactivated buttons cannot be pressed.
+         * @function
+         * @param {Bool} active - Should be active or not
+         * @instance
+         * @name setActive
+         * @snippet #ClickButton.setActive|snippet
+        setActive(${1:true});
+            */
+        setActive: setActive,
+        /**
+         * Performs the callback as if the button was clicked
+         * @function
+         * @instance
+         * @name doCallback
+         * @snippet #ClickButton.doCallback|snippet
+        doCallback();
+            */
+        doCallback: function () {
+            settings.onClick.apply(entity);
+        },
+        /**
+         * Check if the button is active
+         * @function
+         * @instance
+         * @name isActive
+         * @returns {Bool} Whether the button is active
+         * @snippet #ClickButton.isActive|Boolean
+        isActive(${1:true});
+            */
+        isActive: function () {
+            return active;
+        },
+        /**
+         * Set the size of the clickbutton if it's using a nine slice
+         * @function
+         * @param {Number} width
+         * @param {Number} height
+         * @instance
+         * @name setNineSliceSize
+         */
+        setNineSliceSize: function (width, height) {
+            if (visualComponent.name !== 'nineslice') {
+                console.warn("LK_WARN: Don't use setNineSliceSize if the clickbutton uses a sprite.");
+                return;
+            }
+            nsSettings.width = width;
+            nsSettings.height = height;
+            visualComponent.width = width;
+            visualComponent.height = height;
+        }
+    });
+
+    if (Utils.isDefined(settings.active)) {
+        active = settings.active;
+    }
+
+    // events for the button becoming active
+    entity.attach({
+        name: 'attachComponent',
+        start: function () {
+            EventSystem.fire('clickButton-start', {
+                entity: entity
+            });
+        },
+        destroy: function () {
+            EventSystem.fire('clickButton-destroy', {
+                entity: entity
+            });
+            if (ClickButton.currentlyPressing === entity) {
+                ClickButton.currentlyPressing = null;
+            }
+        }
+    });
+
+    // active property
+    Object.defineProperty(entity, 'active', {
+        get: function () {
+            return active;
+        },
+        set: setActive
+    });
+
+    return entity;
+};
+
+ClickButton.currentlyPressing = null;
+
+export default ClickButton;
